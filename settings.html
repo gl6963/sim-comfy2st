@@ -1,0 +1,401 @@
+<div class="comfy-drawer-settings">
+    <!-- 顶部状态横幅 -->
+    <div class="comfy-header-bar">
+        <div class="comfy-title-group">
+            <i class="fa-solid fa-wand-magic-sparkles comfy-logo-icon"></i>
+            <div>
+                <h3 class="comfy-main-title">ComfyUI 极简生图联动</h3>
+                <span class="comfy-subtitle">黑箱工作流调度 · 角色卡特征解耦 · 纯净对话出图</span>
+            </div>
+        </div>
+        <div class="comfy-status-badge" id="comfy_server_status_badge">
+            <span class="comfy-status-dot offline" id="comfy_status_dot"></span>
+            <span id="comfy_status_text">未连接</span>
+        </div>
+    </div>
+
+    <!-- 功能分区 1：服务连接 -->
+    <div class="comfy-card">
+        <div class="comfy-card-header">
+            <i class="fa-solid fa-network-wired"></i>
+            <span>1. ComfyUI 本地服务连接</span>
+        </div>
+        <div class="comfy-card-body">
+            <div class="comfy-form-row">
+                <label for="comfy_server_url" class="comfy-label">服务地址 (URL)：</label>
+                <div class="comfy-input-group flex1">
+                    <input type="text" id="comfy_server_url" class="text_pole" placeholder="http://127.0.0.1:8188" value="http://127.0.0.1:8188" />
+                    <button id="comfy_test_connection_btn" class="menu_button comfy-btn-primary">
+                        <i class="fa-solid fa-bolt"></i> 测试连接
+                    </button>
+                </div>
+            </div>
+            <!-- 连接模式切换与诊断栏 -->
+            <div class="comfy-form-row">
+                <label for="comfy_connection_mode" class="comfy-label">通信通道模式：</label>
+                <select id="comfy_connection_mode" class="text_pole comfy-select flex1">
+                    <option value="auto">自动探测 (优先前端直连，跨域被拦截时提示一键配置)</option>
+                    <option value="direct">强制前端直连 (Direct Fetch - 需 ComfyUI 带 --enable-cors-header)</option>
+                </select>
+            </div>
+            <div id="comfy_cors_help_box" class="comfy-alert-box" style="display: none;">
+                <div class="comfy-alert-header">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <strong>检测到浏览器跨域阻断 (CORS / Failed to fetch)</strong>
+                </div>
+                <div class="comfy-alert-content">
+                    <p>ComfyUI 默认安全策略禁止网页跨端口直接调用。只需在 ComfyUI 启动项中追加跨域允许即可：</p>
+                    <div class="comfy-code-snippet">
+                        <code>--enable-cors-header *</code>
+                        <button id="comfy_copy_cors_flag_btn" class="menu_button comfy-btn-xs" title="复制启动参数">
+                            <i class="fa-solid fa-copy"></i> 复制参数
+                        </button>
+                    </div>
+                    <p class="comfy-alert-note">修改 ComfyUI 快捷方式或 <code>run_nvidia_gpu.bat</code> 末尾添加此参数并重启 ComfyUI 即可解决！</p>
+                </div>
+            </div>
+            <div class="comfy-hint-text">
+                提示：若遇到连接失败，请确认 ComfyUI 已启动并在启动命令行添加 <code>--enable-cors-header *</code>。
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能分区 2：工作流与接口映射 (核心) -->
+    <div class="comfy-card">
+        <div class="comfy-card-header flex-between">
+            <div class="flex-row-center">
+                <i class="fa-solid fa-diagram-project"></i>
+                <span>2. 自定义工作流与接口映射 (黑箱接入)</span>
+            </div>
+            <div class="flex-row-center flexGap5">
+                <button id="comfy_export_mapping_btn" class="menu_button comfy-btn-sm" title="将当前接口映射导出为 mapping_config.json">
+                    <i class="fa-solid fa-file-export"></i> 导出映射
+                </button>
+                <button id="comfy_import_mapping_btn" class="menu_button comfy-btn-sm" title="导入已有 mapping_config.json 映射文件">
+                    <i class="fa-solid fa-file-import"></i> 导入映射
+                </button>
+                <input type="file" id="comfy_mapping_file_input" accept=".json" style="display: none;" />
+                <button id="comfy_auto_map_btn" class="menu_button comfy-btn-sm" title="根据节点类型和标题智能自动猜测绑定">
+                    <i class="fa-solid fa-magic"></i> 智能匹配接口
+                </button>
+            </div>
+        </div>
+        <div class="comfy-card-body">
+            <!-- 工作流上传区 -->
+            <div class="comfy-upload-box" id="comfy_upload_box">
+                <input type="file" id="comfy_workflow_file_input" accept=".json" style="display: none;" />
+                <i class="fa-solid fa-file-arrow-up comfy-upload-icon"></i>
+                <div class="comfy-upload-text">
+                    <strong>点击上传或拖拽 ComfyUI 导出的 API 格式工作流</strong>
+                    <span>(在 ComfyUI 设置开启 Dev Mode 后，点击 Save (API Format) 保存的 JSON 文件)</span>
+                </div>
+            </div>
+
+            <!-- 当前工作流信息摘要 -->
+            <div class="comfy-workflow-meta" id="comfy_workflow_meta" style="display: none;">
+                <div class="comfy-meta-item">
+                    <span class="meta-label">已载入工作流：</span>
+                    <strong class="meta-val" id="comfy_workflow_filename">无</strong>
+                </div>
+                <div class="comfy-meta-item">
+                    <span class="meta-label">解析节点数：</span>
+                    <span class="meta-badge" id="comfy_workflow_nodes_count">0 个节点</span>
+                </div>
+            </div>
+
+            <!-- 关键接口映射表 -->
+            <div class="comfy-mapping-section" id="comfy_mapping_section">
+                <div class="comfy-mapping-title">
+                    <i class="fa-solid fa-sliders"></i> 关键接口绑定 (指定参数注入的目标节点)：
+                </div>
+
+                <!-- 正向提示词 -->
+                <div class="comfy-mapping-row">
+                    <div class="comfy-mapping-label">
+                        <span class="required-star">*</span> 正向提示词接口 (Prompt)：
+                    </div>
+                    <select id="comfy_map_prompt_node" class="text_pole comfy-select">
+                        <option value="">-- 请先上传工作流 JSON --</option>
+                    </select>
+                </div>
+
+                <!-- 负向提示词 (可选) -->
+                <div class="comfy-mapping-row">
+                    <div class="comfy-mapping-label">
+                        负向提示词接口 (Negative Prompt)：
+                    </div>
+                    <select id="comfy_map_neg_prompt_node" class="text_pole comfy-select">
+                        <option value="">-- 不修改 / 保持工作流原样 (推荐) --</option>
+                    </select>
+                </div>
+
+                <!-- 分辨率节点 (Width / Height) -->
+                <div class="comfy-mapping-row">
+                    <div class="comfy-mapping-label">
+                        <span class="required-star">*</span> 分辨率接口 (Latent 节点)：
+                    </div>
+                    <select id="comfy_map_latent_node" class="text_pole comfy-select">
+                        <option value="">-- 请先上传工作流 JSON --</option>
+                    </select>
+                </div>
+
+                <!-- 产物输出图片节点 (SaveImage/PreviewImage) -->
+                <div class="comfy-mapping-row">
+                    <div class="comfy-mapping-label">
+                        最终输出图片接口 (SaveImage 节点)：
+                    </div>
+                    <select id="comfy_map_output_node" class="text_pole comfy-select">
+                        <option value="">-- 自动寻找最后完成的 SaveImage 节点 --</option>
+                    </select>
+                </div>
+
+                <!-- 随机种子同步节点 (多选) -->
+                <div class="comfy-mapping-row">
+                    <div class="comfy-mapping-label">
+                        <span class="required-star">*</span> 随机种子同步 (Seed 节点)：
+                    </div>
+                    <div class="comfy-seed-nodes-container" id="comfy_seed_nodes_container">
+                        <div class="comfy-empty-hint">暂无工作流节点</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能分区 3：生图场景与提示词提取预设 (Presets) -->
+    <div class="comfy-card" id="comfy_presets_card">
+        <div class="comfy-card-header flex-between">
+            <div class="flex-row-center flexGap8">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>3. 生图场景与提示词提取预设 (Presets)</span>
+            </div>
+            <div class="flex-row-center flexGap8">
+                <button id="comfy_add_preset_btn" class="menu_button comfy-btn-xs comfy-btn-outline" title="新建自定义生图模式">
+                    <i class="fa-solid fa-plus"></i> 新建预设
+                </button>
+            </div>
+        </div>
+        <div class="comfy-card-body">
+            <!-- 预设标签药丸切换栏 -->
+            <div class="comfy-preset-pills-bar" id="comfy_preset_pills_bar">
+                <!-- 动态由 JS 渲染 -->
+            </div>
+
+            <!-- 选中预设的编辑容器 -->
+            <div class="comfy-preset-form-box" id="comfy_preset_editor">
+                <!-- 1. 标题 -->
+                <div class="comfy-form-row">
+                    <label for="comfy_preset_name" class="comfy-label"><span class="required-star">*</span> 预设标题 (菜单显示项)：</label>
+                    <input type="text" id="comfy_preset_name" class="text_pole flex1" placeholder="例如：人物正背面 (2段分镜)" />
+                </div>
+
+                <!-- 2. 提示词参考对象 (上下文范围 + 勾选来源) -->
+                <div class="comfy-form-row">
+                    <label for="comfy_preset_context_scope" class="comfy-label">对话内容参考范围：</label>
+                    <select id="comfy_preset_context_scope" class="text_pole comfy-select flex1">
+                        <option value="none">不参考对话内容 (仅看角色外观/纯环境背景)</option>
+                        <option value="last_1">仅参考最后 1 条对话消息 (当前瞬间)</option>
+                        <option value="recent_n">参考最近 N 条对话消息 (默认)</option>
+                        <option value="all">参考当前对话全部历史消息</option>
+                    </select>
+                </div>
+                <div class="comfy-form-row" id="comfy_preset_context_count_row">
+                    <label for="comfy_preset_context_count" class="comfy-label">参考上下文条数 (N)：</label>
+                    <input type="number" id="comfy_preset_context_count" class="text_pole widthNatural" min="1" max="20" value="3" />
+                </div>
+
+                <!-- 全局信息补充注入源 -->
+                <div class="comfy-form-row">
+                    <label class="comfy-label">全局信息注入参考：</label>
+                    <div class="comfy-sources-row">
+                        <label class="comfy-source-checkbox-item" title="将角色卡的描述、性格与设定注入给提词大模型">
+                            <input type="checkbox" id="comfy_source_char_card" checked />
+                            <span>角色卡外貌与设定 ({{char}})</span>
+                        </label>
+                        <label class="comfy-source-checkbox-item" title="将当前匹配的世界书词条/场景背景注入给提词大模型">
+                            <input type="checkbox" id="comfy_source_lorebook" />
+                            <span>世界书与场景设定 (Lorebook)</span>
+                        </label>
+                        <label class="comfy-source-checkbox-item" title="将用户 Persona 注入给提词大模型 (适合双人交互)">
+                            <input type="checkbox" id="comfy_source_user_persona" />
+                            <span>用户人设 ({{user}})</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. 提示词提取规则 -->
+                <div class="comfy-form-row">
+                    <div class="comfy-form-header flex-between" style="width: 100%; margin-bottom: 4px;">
+                        <label for="comfy_preset_extract_prompt" class="comfy-label" style="margin-bottom: 0;">提示词提取规则与输出格式：</label>
+                        <span class="comfy-hint-text">支持宏变量：<code>{{char}}</code> (角色名), <code>{{user}}</code> (用户名), <code>{{count}}</code> (分镜数)</span>
+                    </div>
+                    <textarea id="comfy_preset_extract_prompt" class="text_pole textarea_compact flex1" rows="5" placeholder="规定应该如何从参考对象中提取并总结提示词..."></textarea>
+                </div>
+
+                <!-- 4. 提示词生成段数 (分镜数) -->
+                <div class="comfy-form-row">
+                    <label for="comfy_preset_shot_count" class="comfy-label">提示词生成段数 (分镜批次)：</label>
+                    <div class="flex-row-center flexGap10">
+                        <input type="number" id="comfy_preset_shot_count" class="text_pole widthNatural" min="1" max="4" value="1" />
+                        <span class="comfy-hint-text">(若 > 1，提取规则需引导 LLM 用 <code>---DIVIDER---</code> 分割每段，插件将依次提交 ComfyUI 并批量展示)</span>
+                    </div>
+                </div>
+
+                <!-- 5. 专属图片分辨率 -->
+                <div class="comfy-form-row">
+                    <label for="comfy_preset_resolution" class="comfy-label">图片分辨率 (选填)：</label>
+                    <select id="comfy_preset_resolution" class="text_pole comfy-select flex1">
+                        <option value="keep_global">使用全局设置 (留空则不单独指定)</option>
+                        <option value="832x1216">832 x 1216 (标准竖屏)</option>
+                        <option value="1024x1024">1024 x 1024 (正方 1:1)</option>
+                        <option value="1216x832">1216 x 832 (宽屏横屏)</option>
+                        <option value="1024x1536">1024 x 1536 (高清长竖屏 - 适合正反面)</option>
+                        <option value="custom">自定义此预设专属分辨率...</option>
+                    </select>
+                </div>
+                <div class="comfy-form-row" id="comfy_preset_custom_res_row" style="display: none;">
+                    <label class="comfy-label">自定义宽高：</label>
+                    <div class="flex-row-center flexGap10">
+                        <input type="number" id="comfy_preset_custom_w" class="text_pole widthNatural" placeholder="宽" value="1024" step="8" />
+                        <span>×</span>
+                        <input type="number" id="comfy_preset_custom_h" class="text_pole widthNatural" placeholder="高" value="1536" step="8" />
+                    </div>
+                </div>
+
+                <!-- 预设操作按钮 -->
+                <div class="comfy-preset-actions">
+                    <button id="comfy_save_current_preset_btn" class="menu_button comfy-btn-primary comfy-btn-sm">
+                        <i class="fa-solid fa-check"></i> 保存当前预设
+                    </button>
+                    <button id="comfy_set_default_preset_btn" class="menu_button comfy-btn-secondary comfy-btn-sm" title="将此预设设为消息按钮与快捷调用默认项">
+                        <i class="fa-solid fa-star"></i> 设为默认激活
+                    </button>
+                    <button id="comfy_delete_preset_btn" class="menu_button comfy-btn-secondary comfy-btn-sm" style="color: #f87171 !important;">
+                        <i class="fa-solid fa-trash"></i> 删除此预设
+                    </button>
+                    <button id="comfy_reset_presets_btn" class="menu_button comfy-btn-secondary comfy-btn-sm" style="margin-left: auto;" title="恢复系统内置的常用预设模版">
+                        <i class="fa-solid fa-rotate-left"></i> 恢复出厂预设
+                    </button>
+                </div>
+            </div>
+
+            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.08); margin: 16px 0;" />
+
+            <!-- 角色卡触发词正则说明 -->
+            <div class="comfy-form-row">
+                <label for="comfy_char_tag_regex" class="comfy-label">角色卡触发词提取正则：</label>
+                <input type="text" id="comfy_char_tag_regex" class="text_pole flex1" value="\[SD_TAG:\s*([^\]]+)\]" placeholder="\[SD_TAG:\s*([^\]]+)\]" />
+            </div>
+            <div class="comfy-tip-card">
+                <i class="fa-solid fa-circle-info"></i>
+                <div>
+                    <strong>如何在酒馆角色卡中绑定外观？</strong>
+                    <p>只需在角色卡的【描述 (Description)】或【世界书条目】中写入类似：<br>
+                    <code>[SD_TAG: 1girl, silver hair, red eyes, maid dress, black pantyhose]</code><br>
+                    插件出图时会自动抓取此特征并与模式提示词合并，保证人物外貌在任何场景下始终一致！</p>
+                </div>
+            </div>
+
+            <!-- 全局质量词与负向词 -->
+            <div class="comfy-form-row">
+                <label for="comfy_global_prefix" class="comfy-label">全局画风/质量前缀：</label>
+                <textarea id="comfy_global_prefix" class="text_pole textarea_compact flex1" rows="2" placeholder="masterpiece, best quality, ultra-detailed"></textarea>
+            </div>
+            <div class="comfy-form-row">
+                <label for="comfy_override_negative" class="comfy-label">负向提示词策略：</label>
+                <select id="comfy_override_negative" class="text_pole comfy-select flex1">
+                    <option value="keep_workflow">保留工作流自带负向词 (推荐，保护内建优质负词与Embedding)</option>
+                    <option value="override_global">覆盖为下方酒馆全局负向词</option>
+                    <option value="append_global">追加酒馆全局负向词到工作流原词之后</option>
+                </select>
+            </div>
+            <div class="comfy-form-row">
+                <label for="comfy_global_negative" class="comfy-label">全局通用负向提示词：</label>
+                <textarea id="comfy_global_negative" class="text_pole textarea_compact flex1" rows="2" placeholder="worst quality, low quality, bad anatomy, bad hands, missing fingers, deformed, blurry"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能分区 4：生图偏好与交互方式 -->
+    <div class="comfy-card">
+        <div class="comfy-card-header">
+            <i class="fa-solid fa-palette"></i>
+            <span>4. 出图偏好与交互方式</span>
+        </div>
+        <div class="comfy-card-body">
+            <div class="comfy-form-row">
+                <label for="comfy_default_resolution" class="comfy-label">分辨率接管模式：</label>
+                <select id="comfy_default_resolution" class="text_pole comfy-select flex1">
+                    <option value="keep_workflow">原生黑箱模式 (直接采用工作流自身设定的最佳宽高 - 推荐)</option>
+                    <option value="832x1216">832 x 1216 (标准竖屏 - 适合立绘/半身)</option>
+                    <option value="1024x1024">1024 x 1024 (正方形 1:1 - 适合头像/头像卡)</option>
+                    <option value="1216x832">1216 x 832 (标准横屏 - 适合大场景/双人)</option>
+                    <option value="768x1152">768 x 1152 (SD1.5 高分辨率竖屏)</option>
+                    <option value="512x768">512 x 768 (SD1.5 传统竖屏)</option>
+                    <option value="custom">自定义分辨率...</option>
+                </select>
+            </div>
+
+            <!-- 自定义分辨率输入 (条件展示) -->
+            <div class="comfy-form-row" id="comfy_custom_resolution_row" style="display: none;">
+                <label class="comfy-label">自定义宽高：</label>
+                <div class="flex-row-center flexGap10">
+                    <input type="number" id="comfy_custom_width" class="text_pole widthNatural" placeholder="宽" value="832" step="8" />
+                    <span>×</span>
+                    <input type="number" id="comfy_custom_height" class="text_pole widthNatural" placeholder="高" value="1216" step="8" />
+                </div>
+            </div>
+
+            <!-- 种子模式配置 -->
+            <div class="comfy-form-row">
+                <label for="comfy_seed_mode" class="comfy-label">随机种子 (Seed) 策略：</label>
+                <select id="comfy_seed_mode" class="text_pole comfy-select flex1">
+                    <option value="random">每次生成全新随机种子 (Random)</option>
+                    <option value="fixed">固定使用指定种子 (Fixed)</option>
+                    <option value="reuse_last">复用上一张图的种子 (Reuse Last)</option>
+                </select>
+            </div>
+            <div class="comfy-form-row" id="comfy_fixed_seed_row" style="display: none;">
+                <label for="comfy_fixed_seed_val" class="comfy-label">固定种子数值：</label>
+                <input type="number" id="comfy_fixed_seed_val" class="text_pole flex1" placeholder="留空则自动填充" />
+            </div>
+
+            <!-- 开关选项 -->
+            <div class="comfy-toggle-grid">
+                <label class="comfy-toggle-item">
+                    <input type="checkbox" id="comfy_auto_generate" />
+                    <div>
+                        <strong>AI 回复完成后自动出图</strong>
+                        <div class="sub-text">每当角色回复完毕后，自动提取提示词并下发 ComfyUI 出图 (显存较小建议关闭)</div>
+                    </div>
+                </label>
+
+                <label class="comfy-toggle-item">
+                    <input type="checkbox" id="comfy_show_message_button" checked />
+                    <div>
+                        <strong>在消息右上角注入生图按钮 (🎨)</strong>
+                        <div class="sub-text">在每条 AI 回复的操作栏添加专属绘图按钮，方便随时对任意消息插图</div>
+                    </div>
+                </label>
+
+                <label class="comfy-toggle-item">
+                    <input type="checkbox" id="comfy_show_preview_dialog" checked />
+                    <div>
+                        <strong>出图前弹出提示词确认/微调窗口</strong>
+                        <div class="sub-text">在真正执行生图前允许用户查看提取的 Tags 并手工修饰 (快捷出图更安心)</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- 底部操作按钮 -->
+            <div class="comfy-footer-actions">
+                <button id="comfy_save_settings_btn" class="menu_button comfy-btn-success">
+                    <i class="fa-solid fa-floppy-disk"></i> 保存所有设置
+                </button>
+                <button id="comfy_test_draw_btn" class="menu_button comfy-btn-secondary">
+                    <i class="fa-solid fa-play"></i> 立即测试执行出图
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

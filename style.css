@@ -1,0 +1,933 @@
+/* =========================================================
+   ComfyUI Drawer (极简生图联动) - UI 样式表
+   ========================================================= */
+
+.comfy-drawer-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 10px 4px;
+    color: var(--SmartThemeBodyColor, #e0e0e0);
+    font-family: inherit;
+}
+
+/* 顶部横幅 */
+.comfy-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(45, 55, 72, 0.45) 0%, rgba(30, 41, 59, 0.6) 100%);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 14px 18px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.comfy-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.comfy-logo-icon {
+    font-size: 24px;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.15);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.comfy-main-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.comfy-subtitle {
+    font-size: 0.8rem;
+    color: var(--SmartThemeQuoteColor, #94a3b8);
+}
+
+/* 状态药丸标签 */
+.comfy-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 500;
+}
+
+.comfy-status-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+    transition: background-color 0.3s ease;
+}
+
+.comfy-status-dot.online {
+    background-color: #10b981;
+    box-shadow: 0 0 10px #10b981;
+}
+
+.comfy-status-dot.offline {
+    background-color: #ef4444;
+}
+
+.comfy-status-dot.checking {
+    background-color: #f59e0b;
+    animation: comfyPulse 1.2s infinite;
+}
+
+@keyframes comfyPulse {
+    0% { transform: scale(0.9); opacity: 0.7; }
+    50% { transform: scale(1.2); opacity: 1; }
+    100% { transform: scale(0.9); opacity: 0.7; }
+}
+
+/* 通用分区卡片 */
+.comfy-card {
+    background: rgba(30, 41, 59, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.comfy-card:hover {
+    border-color: rgba(56, 189, 248, 0.25);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.comfy-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.35);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #e2e8f0;
+}
+
+.comfy-card-header i {
+    color: #38bdf8;
+}
+
+.comfy-card-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* 表单行与输入控件 */
+.comfy-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.comfy-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #cbd5e1;
+}
+
+.comfy-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.comfy-hint-text {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+/* 提示卡片 */
+.comfy-tip-card {
+    display: flex;
+    gap: 12px;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #bae6fd;
+}
+
+.comfy-tip-card i {
+    font-size: 1.1rem;
+    color: #38bdf8;
+    margin-top: 2px;
+}
+
+.comfy-tip-card code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #38bdf8;
+    font-family: monospace;
+}
+
+/* 文件上传框 */
+.comfy-upload-box {
+    border: 2px dashed rgba(255, 255, 255, 0.18);
+    border-radius: 10px;
+    padding: 24px 16px;
+    text-align: center;
+    background: rgba(15, 23, 42, 0.25);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.comfy-upload-box:hover, .comfy-upload-box.dragover {
+    border-color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    transform: translateY(-1px);
+}
+
+.comfy-upload-icon {
+    font-size: 28px;
+    color: #38bdf8;
+}
+
+.comfy-upload-text strong {
+    display: block;
+    font-size: 0.92rem;
+    color: #f1f5f9;
+}
+
+.comfy-upload-text span {
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+/* 工作流元信息展示 */
+.comfy-workflow-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+.meta-badge {
+    background: #0284c7;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* 映射区域 */
+.comfy-mapping-section {
+    background: rgba(15, 23, 42, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.comfy-mapping-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.comfy-mapping-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.comfy-mapping-label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #cbd5e1;
+}
+
+.required-star {
+    color: #f43f5e;
+    font-weight: bold;
+}
+
+.comfy-select {
+    width: 100%;
+    cursor: pointer;
+    background: rgba(15, 23, 42, 0.8) !important;
+}
+
+/* 种子多选框网格 */
+.comfy-seed-nodes-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 6px;
+    padding: 10px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.comfy-seed-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.03);
+    transition: background 0.15s ease;
+}
+
+.comfy-seed-checkbox-label:hover {
+    background: rgba(56, 189, 248, 0.1);
+}
+
+.comfy-empty-hint {
+    font-size: 0.8rem;
+    color: #64748b;
+    padding: 8px;
+    text-align: center;
+}
+
+/* 开关网格 */
+.comfy-toggle-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.comfy-toggle-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: rgba(15, 23, 42, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.comfy-toggle-item:hover {
+    background: rgba(15, 23, 42, 0.5);
+}
+
+.comfy-toggle-item input[type="checkbox"] {
+    margin-top: 3px;
+    accent-color: #0284c7;
+    width: 16px;
+    height: 16px;
+}
+
+.comfy-toggle-item strong {
+    display: block;
+    font-size: 0.88rem;
+    color: #e2e8f0;
+}
+
+.comfy-toggle-item .sub-text {
+    font-size: 0.78rem;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+/* 按钮组 */
+.comfy-footer-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.comfy-btn-primary {
+    background: #0284c7 !important;
+    color: white !important;
+}
+
+.comfy-btn-primary:hover {
+    background: #0369a1 !important;
+}
+
+.comfy-btn-success {
+    background: #059669 !important;
+    color: white !important;
+    flex: 1;
+}
+
+.comfy-btn-success:hover {
+    background: #047857 !important;
+}
+
+.comfy-btn-secondary {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #f1f5f9 !important;
+}
+
+.comfy-btn-sm {
+    padding: 4px 10px !important;
+    font-size: 0.78rem !important;
+}
+
+.comfy-btn-xs {
+    padding: 2px 8px !important;
+    font-size: 0.72rem !important;
+    border-radius: 4px !important;
+}
+
+.comfy-btn-outline {
+    background: transparent !important;
+    border: 1px solid rgba(56, 189, 248, 0.4) !important;
+    color: #38bdf8 !important;
+}
+
+.comfy-btn-outline:hover {
+    background: rgba(56, 189, 248, 0.15) !important;
+    border-color: #38bdf8 !important;
+}
+
+/* 跨域/错误诊断报警卡片 */
+.comfy-alert-box {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 4px;
+    animation: comfyFadeIn 0.3s ease;
+}
+
+@keyframes comfyFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.comfy-alert-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f87171;
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.comfy-alert-content {
+    font-size: 0.8rem;
+    color: #fca5a5;
+    line-height: 1.5;
+}
+
+.comfy-alert-content p {
+    margin: 0 0 6px 0;
+}
+
+.comfy-code-snippet {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 6px 10px;
+    border-radius: 6px;
+    margin: 6px 0;
+}
+
+.comfy-code-snippet code {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.82rem;
+    color: #38bdf8;
+    user-select: all;
+}
+
+/* 消息气泡内的图片卡片与画廊交互 */
+.comfy-chat-image-wrapper {
+    margin-top: 8px;
+    display: inline-block;
+    max-width: 100%;
+}
+
+.comfy-chat-image-card {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    background: rgba(15, 23, 42, 0.6);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.comfy-chat-image-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.comfy-chat-image-card img {
+    display: block;
+    max-width: 480px;
+    width: 100%;
+    height: auto;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+/* 消息气泡注入的绘图按钮 */
+.comfy-mes-draw-btn {
+    color: #38bdf8 !important;
+    cursor: pointer;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.comfy-mes-draw-btn:hover {
+    color: #7dd3fc !important;
+    transform: scale(1.18);
+}
+
+.comfy-mes-draw-btn.loading {
+    animation: comfySpin 1s linear infinite;
+    pointer-events: none;
+    color: #f59e0b !important;
+}
+
+@keyframes comfySpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ===================================================
+   v2.2 升级：独立可拖拽/可缩放浮动窗口 (Floating Window)
+   =================================================== */
+.comfy-float-panel {
+    position: fixed;
+    z-index: 10005;
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.7), 0 0 15px rgba(56, 189, 248, 0.15);
+    backdrop-filter: blur(16px);
+    width: 360px;
+    height: 480px;
+    min-width: 300px;
+    max-width: 92vw;
+    min-height: 240px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    resize: both;
+    overflow: hidden;
+    animation: comfyFloatIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.comfy-float-panel:focus-within, .comfy-float-panel.active-window {
+    border-color: rgba(56, 189, 248, 0.6);
+    box-shadow: 0 24px 48px -5px rgba(0, 0, 0, 0.8), 0 0 20px rgba(56, 189, 248, 0.25);
+}
+
+@keyframes comfyFloatIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* 浮窗拖拽标题栏 */
+.comfy-float-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: move;
+    flex-shrink: 0;
+}
+
+.comfy-float-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #f1f5f9;
+    pointer-events: none;
+}
+
+.comfy-float-title i {
+    color: #38bdf8;
+    font-size: 0.95rem;
+}
+
+.comfy-float-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+}
+
+.comfy-float-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.84rem;
+    transition: all 0.15s ease;
+}
+
+.comfy-float-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+}
+
+.comfy-float-btn.close-btn:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+/* 浮窗主体卡片列表 */
+.comfy-float-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    user-select: text;
+}
+
+.comfy-float-body::-webkit-scrollbar {
+    width: 6px;
+}
+.comfy-float-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+.comfy-float-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.4);
+}
+
+/* 单个预设卡片 */
+.comfy-float-card {
+    background: rgba(30, 41, 59, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.comfy-float-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: transparent;
+    transition: background-color 0.2s ease;
+}
+
+.comfy-float-card:hover {
+    background: rgba(56, 189, 248, 0.12);
+    border-color: rgba(56, 189, 248, 0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.comfy-float-card:hover::before {
+    background: #38bdf8;
+}
+
+.comfy-float-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.comfy-float-card-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.comfy-float-card-default-badge {
+    font-size: 0.68rem;
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 1px 5px;
+    border-radius: 4px;
+}
+
+.comfy-float-card-arrow {
+    font-size: 0.82rem;
+    color: #64748b;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.comfy-float-card:hover .comfy-float-card-arrow {
+    color: #38bdf8;
+    transform: translateX(3px);
+}
+
+.comfy-float-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.comfy-float-badge {
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.comfy-float-badge-shots {
+    background: rgba(56, 189, 248, 0.18);
+    color: #7dd3fc;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.comfy-float-badge-shots.multi {
+    background: rgba(168, 85, 247, 0.2);
+    color: #d8b4fe;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.comfy-float-badge-res {
+    background: rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comfy-float-badge-context {
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+/* 浮窗底部操作栏 */
+.comfy-float-footer {
+    padding: 8px 12px;
+    background: rgba(15, 23, 42, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.76rem;
+    color: #64748b;
+    flex-shrink: 0;
+}
+
+.comfy-float-manage-link {
+    color: #94a3b8;
+    text-decoration: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.15s ease;
+}
+
+.comfy-float-manage-link:hover {
+    color: #38bdf8;
+}
+
+.comfy-float-resize-hint {
+    font-size: 0.7rem;
+    color: #475569;
+}
+
+/* 兼容保留旧版 wand dropdown 类名防止意外报错 */
+.comfy-wand-dropdown {
+    display: none !important;
+}
+
+/* ===================================================
+   v2.1 新增：预设管理栏 (Preset Pills & Editor)
+   =================================================== */
+.comfy-preset-pills-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+.comfy-preset-pill {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 0.82rem;
+    color: #94a3b8;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.comfy-preset-pill:hover {
+    border-color: #38bdf8;
+    color: #f1f5f9;
+}
+
+.comfy-preset-pill.active {
+    background: rgba(56, 189, 248, 0.18);
+    border-color: #38bdf8;
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+.comfy-preset-pill .pill-shots {
+    font-size: 0.7rem;
+    background: rgba(56, 189, 248, 0.25);
+    color: #bae6fd;
+    padding: 1px 5px;
+    border-radius: 10px;
+}
+
+.comfy-preset-form-box {
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.comfy-sources-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+}
+
+.comfy-source-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+    cursor: pointer;
+}
+
+.comfy-source-checkbox-item input {
+    accent-color: #38bdf8;
+}
+
+.comfy-preset-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+/* ===================================================
+   v2.1 新增：多段分镜画廊渲染 (Gallery)
+   =================================================== */
+.comfy-chat-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.comfy-shot-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #38bdf8;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+    z-index: 2;
+}
+
+
+/* 弹窗中的提示词编辑容器 */
+.comfy-popup-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.comfy-popup-prompt-area {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: monospace;
+    font-size: 0.86rem;
+    line-height: 1.4;
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.flex-row-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
