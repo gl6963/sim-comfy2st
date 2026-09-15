@@ -1423,6 +1423,200 @@ function initComfyFloatingPanel() {
     return panel;
 }
 
+function renderPresetPills() {
+    const bars = $('.comfy-preset-pills-bar-target');
+    bars.empty();
+
+    (settings.presets || []).forEach(p => {
+        const isEditing = p.id === settings.editingPresetId;
+        const isDefault = p.id === settings.activePresetId;
+        const defaultStar = isDefault ? '<i class="fa-solid fa-star comfy-pill-star" title="当前默认激活预设"></i>' : '';
+        const pillHtml = `
+            <div class="comfy-preset-pill ${isEditing ? 'active' : ''}" data-id="${p.id}">
+                <span>${p.name}</span>
+                ${defaultStar}
+            </div>
+        `;
+        bars.each(function () {
+            const pill = $(pillHtml);
+            pill.on('click', function () {
+                settings.editingPresetId = p.id;
+                renderPresetPills();
+                populatePresetForm(p.id);
+            });
+            $(this).append(pill);
+        });
+    });
+}
+
+function populatePresetForm(presetId) {
+    const p = (settings.presets || []).find(item => item.id === presetId) || (settings.presets && settings.presets[0]);
+    if (!p) return;
+
+    $('.comfy-bind-preset-name').val(p.name);
+    $('.comfy-bind-preset-context-scope').val(p.contextScope || 'recent_n');
+    $('.comfy-bind-preset-context-count').val(p.contextCount || 3);
+    $('.comfy-bind-source-char-card').prop('checked', p.sourceCharCard !== false);
+    $('.comfy-bind-source-lorebook').prop('checked', !!p.sourceLorebook);
+    $('.comfy-bind-source-user-persona').prop('checked', !!p.sourceUserPersona);
+    $('.comfy-bind-preset-extract-prompt').val(p.extractPrompt || '');
+    $('.comfy-bind-preset-shot-count').val(p.shotCount || 1);
+    $('.comfy-bind-preset-resolution').val(p.resolution || 'keep_global');
+    $('.comfy-bind-preset-custom-w').val(p.customWidth || 832);
+    $('.comfy-bind-preset-custom-h').val(p.customHeight || 1216);
+
+    $('.comfy-bind-context-count-row').toggle(p.contextScope === 'recent_n');
+    $('.comfy-bind-custom-res-row').toggle(p.resolution === 'custom');
+
+    // 系统默认项不允许删除
+    if (p.isSystem || p.id === 'preset_default') {
+        $('.comfy-bind-delete-preset-btn').prop('disabled', true).attr('title', '系统核心默认项不可删除');
+    } else {
+        $('.comfy-bind-delete-preset-btn').prop('disabled', false).removeAttr('title');
+    }
+
+    // 默认状态标记
+    if (p.id === settings.activePresetId) {
+        $('.comfy-bind-set-default-preset-btn').prop('disabled', true).html('<i class="fa-solid fa-check"></i> 当前已是默认');
+    } else {
+        $('.comfy-bind-set-default-preset-btn').prop('disabled', false).html('<i class="fa-solid fa-star"></i> 设为默认激活');
+    }
+}
+
+function saveCurrentPresetFromForm(sourceEl) {
+    const p = (settings.presets || []).find(item => item.id === settings.editingPresetId);
+    if (!p) return;
+
+    const container = sourceEl ? $(sourceEl).closest('.comfy-preset-editor-scope') : $('.comfy-preset-editor-scope').first();
+    if (container.length > 0) {
+        p.name = container.find('.comfy-bind-preset-name').val().trim() || '未命名预设';
+        p.contextScope = container.find('.comfy-bind-preset-context-scope').val();
+        p.contextCount = Math.max(1, Number(container.find('.comfy-bind-preset-context-count').val()) || 3);
+        p.sourceCharCard = container.find('.comfy-bind-source-char-card').is(':checked');
+        p.sourceLorebook = container.find('.comfy-bind-source-lorebook').is(':checked');
+        p.sourceUserPersona = container.find('.comfy-bind-source-user-persona').is(':checked');
+        p.extractPrompt = container.find('.comfy-bind-preset-extract-prompt').val();
+        p.shotCount = Math.max(1, Number(container.find('.comfy-bind-preset-shot-count').val()) || 1);
+        p.resolution = container.find('.comfy-bind-preset-resolution').val();
+        p.customWidth = Number(container.find('.comfy-bind-preset-custom-w').val()) || 832;
+        p.customHeight = Number(container.find('.comfy-bind-preset-custom-h').val()) || 1216;
+    }
+
+    saveSettings();
+    renderPresetPills();
+    populatePresetForm(settings.editingPresetId);
+    if ($('#comfy_float_panel').is(':visible')) {
+        renderFloatingPanelContent();
+    }
+}
+
+let presetDelegatesInitialized = false;
+function initPresetSystemDelegates() {
+    if (presetDelegatesInitialized) return;
+    presetDelegatesInitialized = true;
+
+    $(document).on('click', '#comfy_float_footer_manage, .comfy-float-manage-link', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+        openPresetManagementModal();
+    });
+
+    $(document).on('change', '.comfy-bind-preset-context-scope', function () {
+        const scope = $(this).val();
+        $('.comfy-bind-context-count-row').toggle(scope === 'recent_n');
+        saveCurrentPresetFromForm(this);
+    });
+
+    $(document).on('change', '.comfy-bind-preset-resolution', function () {
+        const res = $(this).val();
+        $('.comfy-bind-custom-res-row').toggle(res === 'custom');
+        saveCurrentPresetFromForm(this);
+    });
+
+    $(document).on('input change', '.comfy-bind-preset-name, .comfy-bind-preset-context-count, .comfy-bind-preset-shot-count, .comfy-bind-preset-custom-w, .comfy-bind-preset-custom-h', function () {
+        saveCurrentPresetFromForm(this);
+    });
+    $(document).on('change', '.comfy-bind-source-char-card, .comfy-bind-source-lorebook, .comfy-bind-source-user-persona', function () {
+        saveCurrentPresetFromForm(this);
+    });
+    $(document).on('blur', '.comfy-bind-preset-extract-prompt', function () {
+        saveCurrentPresetFromForm(this);
+    });
+
+    $(document).on('click', '.comfy-bind-save-preset-btn', function () {
+        saveCurrentPresetFromForm(this);
+        toastr.success('预设已保存！');
+    });
+
+    $(document).on('click', '.comfy-bind-add-preset-btn', function () {
+        const newId = 'preset_' + Date.now();
+        const newPreset = {
+            id: newId,
+            name: `新建场景预设 ${(settings.presets || []).length + 1}`,
+            contextScope: 'recent_n',
+            contextCount: 3,
+            sourceCharCard: true,
+            sourceLorebook: false,
+            sourceUserPersona: false,
+            extractPrompt: 'Read the recent dialogue context and generate Danbooru-style tags for {{char}}.\nOutput ONLY comma-separated tags.',
+            shotCount: 1,
+            resolution: 'keep_global',
+            customWidth: 832,
+            customHeight: 1216,
+            isDefault: false,
+            isSystem: false
+        };
+
+        if (!Array.isArray(settings.presets)) settings.presets = [];
+        settings.presets.push(newPreset);
+        settings.editingPresetId = newId;
+        saveSettings();
+        renderPresetPills();
+        populatePresetForm(newId);
+        toastr.info('已新建预设，您可以在下方直接编辑配置！');
+    });
+
+    $(document).on('click', '.comfy-bind-set-default-preset-btn', function () {
+        settings.activePresetId = settings.editingPresetId;
+        saveSettings();
+        renderPresetPills();
+        populatePresetForm(settings.editingPresetId);
+        if ($('#comfy_float_panel').is(':visible')) renderFloatingPanelContent();
+        toastr.success('已设为默认出图预设！');
+    });
+
+    $(document).on('click', '.comfy-bind-delete-preset-btn', function () {
+        const curId = settings.editingPresetId;
+        if (curId === 'preset_default') {
+            toastr.warning('系统默认预设不能删除！');
+            return;
+        }
+
+        settings.presets = (settings.presets || []).filter(p => p.id !== curId);
+        if (settings.activePresetId === curId) {
+            settings.activePresetId = 'preset_default';
+        }
+        settings.editingPresetId = settings.presets[0]?.id || 'preset_default';
+        saveSettings();
+        renderPresetPills();
+        populatePresetForm(settings.editingPresetId);
+        if ($('#comfy_float_panel').is(':visible')) renderFloatingPanelContent();
+        toastr.success('预设已成功删除！');
+    });
+
+    $(document).on('click', '.comfy-bind-reset-presets-btn', function () {
+        if (!confirm('确定要恢复出厂内置预设吗？您自定义添加的预设将会被清空。')) return;
+        settings.presets = JSON.parse(JSON.stringify(BUILTIN_PRESETS));
+        settings.activePresetId = 'preset_default';
+        settings.editingPresetId = 'preset_default';
+        saveSettings();
+        renderPresetPills();
+        populatePresetForm('preset_default');
+        if ($('#comfy_float_panel').is(':visible')) renderFloatingPanelContent();
+        toastr.success('已恢复出厂内置预设！');
+    });
+}
+
 /**
  * 弹出独立的可视化预设管理模态窗口
  */
@@ -1430,7 +1624,7 @@ function openPresetManagementModal() {
     let modal = $('#comfy_preset_modal');
     if (modal.length === 0) {
         modal = $(`
-            <div id="comfy_preset_modal" class="comfy-preset-modal-overlay" style="display: none;">
+            <div id="comfy_preset_modal" class="comfy-preset-modal-overlay">
                 <div class="comfy-preset-modal">
                     <div class="comfy-preset-modal-header flex-between">
                         <div class="flex-row-center flexGap8">
@@ -1562,7 +1756,8 @@ function openPresetManagementModal() {
             }
         });
 
-        modal.on('click', '#comfy_preset_modal_close_btn', function () {
+        modal.on('click', '#comfy_preset_modal_close_btn', function (e) {
+            e.stopPropagation();
             closePresetManagementModal();
         });
 
@@ -1575,13 +1770,13 @@ function openPresetManagementModal() {
 
     renderPresetPills();
     populatePresetForm(settings.editingPresetId || settings.activePresetId);
-    modal.fadeIn(180);
+    modal.addClass('active').fadeIn(150);
 }
 
 function closePresetManagementModal() {
     const modal = $('#comfy_preset_modal');
     if (modal.length > 0) {
-        modal.fadeOut(150);
+        modal.removeClass('active').fadeOut(150);
     }
 }
 
@@ -1992,192 +2187,8 @@ function bindSettingsUIEvents() {
     });
 
     // 7.1 预设系统可视化交互与表单管理
-    function renderPresetPills() {
-        const bars = $('.comfy-preset-pills-bar-target');
-        bars.empty();
-
-        (settings.presets || []).forEach(p => {
-            const isEditing = p.id === settings.editingPresetId;
-            const isDefault = p.id === settings.activePresetId;
-            const defaultStar = isDefault ? '<i class="fa-solid fa-star comfy-pill-star" title="当前默认激活预设"></i>' : '';
-            const pillHtml = `
-                <div class="comfy-preset-pill ${isEditing ? 'active' : ''}" data-id="${p.id}">
-                    <span>${p.name}</span>
-                    ${defaultStar}
-                </div>
-            `;
-            bars.each(function () {
-                const pill = $(pillHtml);
-                pill.on('click', function () {
-                    settings.editingPresetId = p.id;
-                    renderPresetPills();
-                    populatePresetForm(p.id);
-                });
-                $(this).append(pill);
-            });
-        });
-    }
-
-    function populatePresetForm(presetId) {
-        const p = settings.presets.find(item => item.id === presetId) || settings.presets[0];
-        if (!p) return;
-
-        $('.comfy-bind-preset-name').val(p.name);
-        $('.comfy-bind-preset-context-scope').val(p.contextScope || 'recent_n');
-        $('.comfy-bind-preset-context-count').val(p.contextCount || 3);
-        $('.comfy-bind-source-char-card').prop('checked', p.sourceCharCard !== false);
-        $('.comfy-bind-source-lorebook').prop('checked', !!p.sourceLorebook);
-        $('.comfy-bind-source-user-persona').prop('checked', !!p.sourceUserPersona);
-        $('.comfy-bind-preset-extract-prompt').val(p.extractPrompt || '');
-        $('.comfy-bind-preset-shot-count').val(p.shotCount || 1);
-        $('.comfy-bind-preset-resolution').val(p.resolution || 'keep_global');
-        $('.comfy-bind-preset-custom-w').val(p.customWidth || 832);
-        $('.comfy-bind-preset-custom-h').val(p.customHeight || 1216);
-
-        $('.comfy-bind-context-count-row').toggle(p.contextScope === 'recent_n');
-        $('.comfy-bind-custom-res-row').toggle(p.resolution === 'custom');
-
-        // 系统默认项不允许删除
-        if (p.isSystem || p.id === 'preset_default') {
-            $('.comfy-bind-delete-preset-btn').prop('disabled', true).attr('title', '系统核心默认项不可删除');
-        } else {
-            $('.comfy-bind-delete-preset-btn').prop('disabled', false).removeAttr('title');
-        }
-
-        // 默认状态标记
-        if (p.id === settings.activePresetId) {
-            $('.comfy-bind-set-default-preset-btn').prop('disabled', true).html('<i class="fa-solid fa-check"></i> 当前已是默认');
-        } else {
-            $('.comfy-bind-set-default-preset-btn').prop('disabled', false).html('<i class="fa-solid fa-star"></i> 设为默认激活');
-        }
-    }
-
-    function saveCurrentPresetFromForm(sourceEl) {
-        const p = settings.presets.find(item => item.id === settings.editingPresetId);
-        if (!p) return;
-
-        const container = sourceEl ? $(sourceEl).closest('.comfy-preset-editor-scope') : $('#comfy_preset_editor');
-        if (container.length > 0) {
-            p.name = container.find('.comfy-bind-preset-name').val().trim() || '未命名预设';
-            p.contextScope = container.find('.comfy-bind-preset-context-scope').val();
-            p.contextCount = Math.max(1, Number(container.find('.comfy-bind-preset-context-count').val()) || 3);
-            p.sourceCharCard = container.find('.comfy-bind-source-char-card').is(':checked');
-            p.sourceLorebook = container.find('.comfy-bind-source-lorebook').is(':checked');
-            p.sourceUserPersona = container.find('.comfy-bind-source-user-persona').is(':checked');
-            p.extractPrompt = container.find('.comfy-bind-preset-extract-prompt').val();
-            p.shotCount = Math.max(1, Number(container.find('.comfy-bind-preset-shot-count').val()) || 1);
-            p.resolution = container.find('.comfy-bind-preset-resolution').val();
-            p.customWidth = Number(container.find('.comfy-bind-preset-custom-w').val()) || 832;
-            p.customHeight = Number(container.find('.comfy-bind-preset-custom-h').val()) || 1216;
-        }
-
-        saveSettings();
-        renderPresetPills();
-        populatePresetForm(settings.editingPresetId);
-        if ($('#comfy_float_panel').is(':visible')) {
-            renderFloatingPanelContent();
-        }
-    }
-
-    $(document).on('change', '.comfy-bind-preset-context-scope', function () {
-        const scope = $(this).val();
-        $('.comfy-bind-context-count-row').toggle(scope === 'recent_n');
-        saveCurrentPresetFromForm(this);
-    });
-
-    $(document).on('change', '.comfy-bind-preset-resolution', function () {
-        const res = $(this).val();
-        $('.comfy-bind-custom-res-row').toggle(res === 'custom');
-        saveCurrentPresetFromForm(this);
-    });
-
-    $(document).on('input change', '.comfy-bind-preset-name, .comfy-bind-preset-context-count, .comfy-bind-preset-shot-count, .comfy-bind-preset-custom-w, .comfy-bind-preset-custom-h', function () {
-        saveCurrentPresetFromForm(this);
-    });
-    $(document).on('change', '.comfy-bind-source-char-card, .comfy-bind-source-lorebook, .comfy-bind-source-user-persona', function () {
-        saveCurrentPresetFromForm(this);
-    });
-    $(document).on('blur', '.comfy-bind-preset-extract-prompt', function () {
-        saveCurrentPresetFromForm(this);
-    });
-
-    $(document).on('click', '.comfy-bind-save-preset-btn', function () {
-        saveCurrentPresetFromForm(this);
-        toastr.success('预设已保存！');
-    });
-
-    // 新增预设
-    $(document).on('click', '.comfy-bind-add-preset-btn', function () {
-        const newId = 'preset_' + Date.now();
-        const newPreset = {
-            id: newId,
-            name: `新建场景预设 ${settings.presets.length + 1}`,
-            contextScope: 'recent_n',
-            contextCount: 3,
-            sourceCharCard: true,
-            sourceLorebook: false,
-            sourceUserPersona: false,
-            extractPrompt: 'Read the recent dialogue context and generate Danbooru-style tags for {{char}}.\nOutput ONLY comma-separated tags.',
-            shotCount: 1,
-            resolution: 'keep_global',
-            customWidth: 832,
-            customHeight: 1216,
-            isDefault: false,
-            isSystem: false
-        };
-
-        settings.presets.push(newPreset);
-        settings.editingPresetId = newId;
-        saveSettings();
-        renderPresetPills();
-        populatePresetForm(newId);
-        toastr.info('已新建预设，您可以在下方直接编辑配置！');
-    });
-
-    // 设为默认激活预设
-    $(document).on('click', '.comfy-bind-set-default-preset-btn', function () {
-        settings.activePresetId = settings.editingPresetId;
-        saveSettings();
-        renderPresetPills();
-        populatePresetForm(settings.editingPresetId);
-        if ($('#comfy_float_panel').is(':visible')) renderFloatingPanelContent();
-        toastr.success('已设为默认出图预设！');
-    });
-
-    // 删除预设
-    $(document).on('click', '.comfy-bind-delete-preset-btn', function () {
-        const curId = settings.editingPresetId;
-        if (curId === 'preset_default') {
-            toastr.warning('系统默认预设不能删除！');
-            return;
-        }
-
-        settings.presets = settings.presets.filter(p => p.id !== curId);
-        if (settings.activePresetId === curId) {
-            settings.activePresetId = 'preset_default';
-        }
-        settings.editingPresetId = settings.presets[0]?.id || 'preset_default';
-        saveSettings();
-        renderPresetPills();
-        populatePresetForm(settings.editingPresetId);
-        if ($('#comfy_float_panel').is(':visible')) renderFloatingPanelContent();
-        toastr.success('预设已成功删除！');
-    });
-
-    // 恢复出厂内置预设
-    $(document).on('click', '.comfy-bind-reset-presets-btn', function () {
-        if (!confirm('确定要恢复出厂内置预设吗？您自定义添加的预设将会被清空。')) return;
-        settings.presets = JSON.parse(JSON.stringify(BUILTIN_PRESETS));
-        settings.activePresetId = 'preset_default';
-        settings.editingPresetId = 'preset_default';
-        saveSettings();
-        renderPresetPills();
-        populatePresetForm(settings.editingPresetId);
-        if ($('#comfy_float_panel').is(':visible')) renderFloatingPanelContent();
-        toastr.success('已恢复出厂内置预设！');
-    });
-
-    // 初始化渲染预设管理界面
+    // 7. 预设系统全局委托与初始渲染
+    initPresetSystemDelegates();
     renderPresetPills();
     populatePresetForm(settings.editingPresetId || settings.activePresetId);
 

@@ -944,10 +944,15 @@
     background: rgba(0, 0, 0, 0.65);
     backdrop-filter: blur(6px);
     z-index: 10000;
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
-    animation: comfyFadeIn 0.2s ease;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.comfy-preset-modal-overlay.active {
+    display: flex !important;
 }
 
 @keyframes comfyFadeIn {
