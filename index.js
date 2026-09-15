@@ -15,6 +15,17 @@ import { saveBase64AsFile } from '/scripts/utils.js';
 
 const MODULE_NAME = 'comfyui_drawer';
 
+const EXTENSION_DIR = (function () {
+    try {
+        const url = new URL(import.meta.url);
+        const parts = url.pathname.split('/scripts/extensions/')[1];
+        if (parts) {
+            return parts.substring(0, parts.lastIndexOf('/'));
+        }
+    } catch (e) {}
+    return 'third-party/sim-comfy2st';
+})();
+
 const BUILTIN_PRESETS = [
     {
         id: 'preset_default',
@@ -955,7 +966,7 @@ async function attachGalleryToChatMessage(targetMessageId, results, presetName =
             if (item.base64 && typeof item.base64 === 'string' && item.base64.startsWith('data:image/')) {
                 const rawData = item.base64.replace(/^data:image\/\w+;base64,/, '');
                 const filename = `comfy_${Date.now()}_${i}_${item.seed || 'seed'}`;
-                const savedPath = await saveBase64AsFile(rawData, 'comfyui-drawer', filename, 'png');
+                const savedPath = await saveBase64AsFile(rawData, 'sim-comfy2st', filename, 'png');
                 if (savedPath) {
                     url = savedPath;
                 }
@@ -1949,7 +1960,7 @@ jQuery(async () => {
 
     // 1. 动态载入设置 HTML 并追加到设置抽屉中
     try {
-        const templateHtml = await renderExtensionTemplateAsync('third-party/comfyui-drawer', 'settings');
+        const templateHtml = await renderExtensionTemplateAsync(EXTENSION_DIR, 'settings');
         const container = $('<div id="comfyui_drawer_settings_container" class="extension_container"></div>').append(templateHtml);
         $('#extensions_settings').append(container);
         bindSettingsUIEvents();

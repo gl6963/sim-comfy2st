@@ -43,7 +43,7 @@
 进入 SillyTavern 安装目录下的第三方扩展文件夹并克隆：
 ```bash
 cd public/scripts/extensions/third-party
-git clone https://github.com/gl6963/sim-comfy2st.git comfyui-drawer
+git clone https://github.com/gl6963/sim-comfy2st.git
 ```
 重新启动或刷新 SillyTavern 即可加载。
 
