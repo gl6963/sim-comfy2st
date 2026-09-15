@@ -81,7 +81,26 @@
             </div>
         </div>
         <div class="comfy-card-body">
-            <!-- 工作流上传区 -->
+            <!-- 工作流管理栏 (类似预设管理) -->
+            <div class="flex-between flex-row-center" style="margin-bottom: 8px;">
+                <span class="comfy-label" style="font-weight: 600; color: #38bdf8;">
+                    <i class="fa-solid fa-list-check"></i> 工作流库与切换：
+                </span>
+                <div class="flex-row-center flexGap5">
+                    <button id="comfy_add_workflow_btn" class="menu_button comfy-btn-xs comfy-btn-outline" title="上传并添加新的 ComfyUI 工作流">
+                        <i class="fa-solid fa-plus"></i> 添加工作流
+                    </button>
+                    <button id="comfy_delete_workflow_btn" class="menu_button comfy-btn-xs" style="color: #f87171 !important;" title="删除当前选中的工作流">
+                        <i class="fa-solid fa-trash"></i> 删除工作流
+                    </button>
+                </div>
+            </div>
+            <!-- 工作流胶囊切换栏 -->
+            <div class="comfy-preset-pills-bar" id="comfy_workflow_pills_bar" style="margin-bottom: 10px;">
+                <!-- 动态由 JS 渲染 -->
+            </div>
+
+            <!-- 工作流上传与拖拽区 -->
             <div class="comfy-upload-box" id="comfy_upload_box">
                 <input type="file" id="comfy_workflow_file_input" accept=".json" style="display: none;" />
                 <i class="fa-solid fa-file-arrow-up comfy-upload-icon"></i>
@@ -170,38 +189,38 @@
                 <span>3. 生图场景与提示词提取预设 (Presets)</span>
             </div>
             <div class="flex-row-center flexGap8">
-                <button id="comfy_add_preset_btn" class="menu_button comfy-btn-xs comfy-btn-outline" title="新建自定义生图模式">
+                <button id="comfy_add_preset_btn" class="menu_button comfy-btn-xs comfy-btn-outline comfy-bind-add-preset-btn" title="新建自定义生图模式">
                     <i class="fa-solid fa-plus"></i> 新建预设
                 </button>
             </div>
         </div>
         <div class="comfy-card-body">
             <!-- 预设标签药丸切换栏 -->
-            <div class="comfy-preset-pills-bar" id="comfy_preset_pills_bar">
+            <div class="comfy-preset-pills-bar comfy-preset-pills-bar-target" id="comfy_preset_pills_bar">
                 <!-- 动态由 JS 渲染 -->
             </div>
 
             <!-- 选中预设的编辑容器 -->
-            <div class="comfy-preset-form-box" id="comfy_preset_editor">
+            <div class="comfy-preset-form-box comfy-preset-editor-scope" id="comfy_preset_editor">
                 <!-- 1. 标题 -->
                 <div class="comfy-form-row">
                     <label for="comfy_preset_name" class="comfy-label"><span class="required-star">*</span> 预设标题 (菜单显示项)：</label>
-                    <input type="text" id="comfy_preset_name" class="text_pole flex1" placeholder="例如：人物正背面 (2段分镜)" />
+                    <input type="text" id="comfy_preset_name" class="text_pole flex1 comfy-bind-preset-name" placeholder="例如：人物正背面 (2段分镜)" />
                 </div>
 
                 <!-- 2. 提示词参考对象 (上下文范围 + 勾选来源) -->
                 <div class="comfy-form-row">
                     <label for="comfy_preset_context_scope" class="comfy-label">对话内容参考范围：</label>
-                    <select id="comfy_preset_context_scope" class="text_pole comfy-select flex1">
+                    <select id="comfy_preset_context_scope" class="text_pole comfy-select flex1 comfy-bind-preset-context-scope">
                         <option value="none">不参考对话内容 (仅看角色外观/纯环境背景)</option>
                         <option value="last_1">仅参考最后 1 条对话消息 (当前瞬间)</option>
                         <option value="recent_n">参考最近 N 条对话消息 (默认)</option>
                         <option value="all">参考当前对话全部历史消息</option>
                     </select>
                 </div>
-                <div class="comfy-form-row" id="comfy_preset_context_count_row">
+                <div class="comfy-form-row comfy-bind-context-count-row" id="comfy_preset_context_count_row">
                     <label for="comfy_preset_context_count" class="comfy-label">参考上下文条数 (N)：</label>
-                    <input type="number" id="comfy_preset_context_count" class="text_pole widthNatural" min="1" max="20" value="3" />
+                    <input type="number" id="comfy_preset_context_count" class="text_pole widthNatural comfy-bind-preset-context-count" min="1" max="20" value="3" />
                 </div>
 
                 <!-- 全局信息补充注入源 -->
@@ -209,15 +228,15 @@
                     <label class="comfy-label">全局信息注入参考：</label>
                     <div class="comfy-sources-row">
                         <label class="comfy-source-checkbox-item" title="将角色卡的描述、性格与设定注入给提词大模型">
-                            <input type="checkbox" id="comfy_source_char_card" checked />
+                            <input type="checkbox" id="comfy_source_char_card" class="comfy-bind-source-char-card" checked />
                             <span>角色卡外貌与设定 ({{char}})</span>
                         </label>
                         <label class="comfy-source-checkbox-item" title="将当前匹配的世界书词条/场景背景注入给提词大模型">
-                            <input type="checkbox" id="comfy_source_lorebook" />
+                            <input type="checkbox" id="comfy_source_lorebook" class="comfy-bind-source-lorebook" />
                             <span>世界书与场景设定 (Lorebook)</span>
                         </label>
                         <label class="comfy-source-checkbox-item" title="将用户 Persona 注入给提词大模型 (适合双人交互)">
-                            <input type="checkbox" id="comfy_source_user_persona" />
+                            <input type="checkbox" id="comfy_source_user_persona" class="comfy-bind-source-user-persona" />
                             <span>用户人设 ({{user}})</span>
                         </label>
                     </div>
@@ -229,14 +248,14 @@
                         <label for="comfy_preset_extract_prompt" class="comfy-label" style="margin-bottom: 0;">提示词提取规则与输出格式：</label>
                         <span class="comfy-hint-text">支持宏变量：<code>{{char}}</code> (角色名), <code>{{user}}</code> (用户名), <code>{{count}}</code> (分镜数)</span>
                     </div>
-                    <textarea id="comfy_preset_extract_prompt" class="text_pole textarea_compact flex1" rows="5" placeholder="规定应该如何从参考对象中提取并总结提示词..."></textarea>
+                    <textarea id="comfy_preset_extract_prompt" class="text_pole textarea_compact flex1 comfy-bind-preset-extract-prompt" rows="5" placeholder="规定应该如何从参考对象中提取并总结提示词..."></textarea>
                 </div>
 
                 <!-- 4. 提示词生成段数 (分镜数) -->
                 <div class="comfy-form-row">
                     <label for="comfy_preset_shot_count" class="comfy-label">提示词生成段数 (分镜批次)：</label>
                     <div class="flex-row-center flexGap10">
-                        <input type="number" id="comfy_preset_shot_count" class="text_pole widthNatural" min="1" max="4" value="1" />
+                        <input type="number" id="comfy_preset_shot_count" class="text_pole widthNatural comfy-bind-preset-shot-count" min="1" max="4" value="1" />
                         <span class="comfy-hint-text">(若 > 1，提取规则需引导 LLM 用 <code>---DIVIDER---</code> 分割每段，插件将依次提交 ComfyUI 并批量展示)</span>
                     </div>
                 </div>
@@ -244,7 +263,7 @@
                 <!-- 5. 专属图片分辨率 -->
                 <div class="comfy-form-row">
                     <label for="comfy_preset_resolution" class="comfy-label">图片分辨率 (选填)：</label>
-                    <select id="comfy_preset_resolution" class="text_pole comfy-select flex1">
+                    <select id="comfy_preset_resolution" class="text_pole comfy-select flex1 comfy-bind-preset-resolution">
                         <option value="keep_global">使用全局设置 (留空则不单独指定)</option>
                         <option value="832x1216">832 x 1216 (标准竖屏)</option>
                         <option value="1024x1024">1024 x 1024 (正方 1:1)</option>
@@ -253,27 +272,27 @@
                         <option value="custom">自定义此预设专属分辨率...</option>
                     </select>
                 </div>
-                <div class="comfy-form-row" id="comfy_preset_custom_res_row" style="display: none;">
+                <div class="comfy-form-row comfy-bind-custom-res-row" id="comfy_preset_custom_res_row" style="display: none;">
                     <label class="comfy-label">自定义宽高：</label>
                     <div class="flex-row-center flexGap10">
-                        <input type="number" id="comfy_preset_custom_w" class="text_pole widthNatural" placeholder="宽" value="1024" step="8" />
+                        <input type="number" id="comfy_preset_custom_w" class="text_pole widthNatural comfy-bind-preset-custom-w" placeholder="宽" value="1024" step="8" />
                         <span>×</span>
-                        <input type="number" id="comfy_preset_custom_h" class="text_pole widthNatural" placeholder="高" value="1536" step="8" />
+                        <input type="number" id="comfy_preset_custom_h" class="text_pole widthNatural comfy-bind-preset-custom-h" placeholder="高" value="1536" step="8" />
                     </div>
                 </div>
 
                 <!-- 预设操作按钮 -->
                 <div class="comfy-preset-actions">
-                    <button id="comfy_save_current_preset_btn" class="menu_button comfy-btn-primary comfy-btn-sm">
+                    <button id="comfy_save_current_preset_btn" class="menu_button comfy-btn-primary comfy-btn-sm comfy-bind-save-preset-btn">
                         <i class="fa-solid fa-check"></i> 保存当前预设
                     </button>
-                    <button id="comfy_set_default_preset_btn" class="menu_button comfy-btn-secondary comfy-btn-sm" title="将此预设设为消息按钮与快捷调用默认项">
+                    <button id="comfy_set_default_preset_btn" class="menu_button comfy-btn-secondary comfy-btn-sm comfy-bind-set-default-preset-btn" title="将此预设设为消息按钮与快捷调用默认项">
                         <i class="fa-solid fa-star"></i> 设为默认激活
                     </button>
-                    <button id="comfy_delete_preset_btn" class="menu_button comfy-btn-secondary comfy-btn-sm" style="color: #f87171 !important;">
+                    <button id="comfy_delete_preset_btn" class="menu_button comfy-btn-secondary comfy-btn-sm comfy-bind-delete-preset-btn" style="color: #f87171 !important;">
                         <i class="fa-solid fa-trash"></i> 删除此预设
                     </button>
-                    <button id="comfy_reset_presets_btn" class="menu_button comfy-btn-secondary comfy-btn-sm" style="margin-left: auto;" title="恢复系统内置的常用预设模版">
+                    <button id="comfy_reset_presets_btn" class="menu_button comfy-btn-secondary comfy-btn-sm comfy-bind-reset-presets-btn" style="margin-left: auto;" title="恢复系统内置的常用预设模版">
                         <i class="fa-solid fa-rotate-left"></i> 恢复出厂预设
                     </button>
                 </div>

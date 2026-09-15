@@ -931,3 +931,90 @@
     align-items: center;
     gap: 8px;
 }
+
+/* ===================================================
+   预设管理独立弹窗 (Preset Modal Window)
+   =================================================== */
+.comfy-preset-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(6px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: comfyFadeIn 0.2s ease;
+}
+
+@keyframes comfyFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.comfy-preset-modal {
+    background: #0f172a;
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 25px rgba(56, 189, 248, 0.2);
+    border-radius: 14px;
+    width: 90vw;
+    max-width: 680px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: comfyModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes comfyModalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.94) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.comfy-preset-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.comfy-preset-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+.comfy-preset-modal-title i {
+    color: #38bdf8;
+}
+
+.comfy-preset-modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.comfy-preset-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.comfy-preset-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}

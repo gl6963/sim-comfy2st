@@ -119,6 +119,9 @@ const defaultSettings = {
     autoGenerate: false,
     showMessageButton: true,
     showPreviewDialog: true,
+    // 工作流管理集合与激活指针
+    workflows: [],
+    activeWorkflowId: '',
     // 预设系统集合与激活指针
     presets: JSON.parse(JSON.stringify(BUILTIN_PRESETS)),
     activePresetId: 'preset_default',
@@ -149,6 +152,32 @@ function loadSettings() {
     }
     if (!settings.editingPresetId || !settings.presets.some(p => p.id === settings.editingPresetId)) {
         settings.editingPresetId = settings.activePresetId;
+    }
+
+    // 兼容历史单一工作流，迁移到 workflows 列表
+    if (!Array.isArray(settings.workflows)) {
+        settings.workflows = [];
+    }
+    if (settings.workflows.length === 0 && settings.workflowJson) {
+        const initialWf = {
+            id: 'wf_' + Date.now(),
+            name: settings.workflowFilename || '默认工作流.json',
+            json: settings.workflowJson,
+            mapping: {
+                promptNodeId: settings.promptNodeId || '',
+                negativeNodeId: settings.negativeNodeId || '',
+                latentNodeId: settings.latentNodeId || '',
+                outputNodeId: settings.outputNodeId || '',
+                seedNodeIds: settings.seedNodeIds || []
+            }
+        };
+        settings.workflows.push(initialWf);
+        settings.activeWorkflowId = initialWf.id;
+    }
+    if (settings.workflows.length > 0) {
+        if (!settings.activeWorkflowId || !settings.workflows.some(w => w.id === settings.activeWorkflowId)) {
+            settings.activeWorkflowId = settings.workflows[0].id;
+        }
     }
 
     extension_settings[MODULE_NAME] = settings;
@@ -1266,9 +1295,6 @@ function initComfyFloatingPanel() {
                     <span>ComfyUI 场景预设</span>
                 </div>
                 <div class="comfy-float-controls">
-                    <button class="comfy-float-btn" id="comfy_float_goto_settings" title="打开插件设置面板">
-                        <i class="fa-solid fa-gear"></i>
-                    </button>
                     <button class="comfy-float-btn close-btn" id="comfy_float_close_btn" title="关闭窗口 (ESC)">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
@@ -1382,14 +1408,9 @@ function initComfyFloatingPanel() {
 
     // 控制栏按钮事件
     panel.on('click', '#comfy_float_close_btn', () => closeComfyFloatingPanel());
-    panel.on('click', '#comfy_float_goto_settings, #comfy_float_footer_manage', (e) => {
+    panel.on('click', '#comfy_float_footer_manage', (e) => {
         e.stopPropagation();
-        $('#extensions_settings_button').trigger('click');
-        // 平滑滚动到 ComfyUI 抽屉设置处
-        setTimeout(() => {
-            const drawerSec = document.getElementById('comfyui_drawer_settings_container') || document.getElementById('comfy_drawer_settings_container');
-            if (drawerSec) drawerSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 200);
+        openPresetManagementModal();
     });
 
     // 全局 ESC 键关闭
@@ -1400,6 +1421,168 @@ function initComfyFloatingPanel() {
     });
 
     return panel;
+}
+
+/**
+ * 弹出独立的可视化预设管理模态窗口
+ */
+function openPresetManagementModal() {
+    let modal = $('#comfy_preset_modal');
+    if (modal.length === 0) {
+        modal = $(`
+            <div id="comfy_preset_modal" class="comfy-preset-modal-overlay" style="display: none;">
+                <div class="comfy-preset-modal">
+                    <div class="comfy-preset-modal-header flex-between">
+                        <div class="flex-row-center flexGap8">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span class="comfy-preset-modal-title">生图场景与提示词提取预设管理</span>
+                        </div>
+                        <div class="flex-row-center flexGap8">
+                            <button class="menu_button comfy-btn-xs comfy-btn-outline comfy-bind-add-preset-btn" title="新建自定义生图模式">
+                                <i class="fa-solid fa-plus"></i> 新建预设
+                            </button>
+                            <button class="comfy-float-btn close-btn" id="comfy_preset_modal_close_btn" title="关闭 (ESC)">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="comfy-preset-modal-body">
+                        <!-- 预设标签药丸切换栏 -->
+                        <div class="comfy-preset-pills-bar comfy-preset-pills-bar-target">
+                            <!-- 动态由 JS 渲染 -->
+                        </div>
+
+                        <!-- 选中预设的编辑容器 -->
+                        <div class="comfy-preset-form-box comfy-preset-editor-scope">
+                            <!-- 1. 标题 -->
+                            <div class="comfy-form-row">
+                                <label class="comfy-label"><span class="required-star">*</span> 预设标题 (菜单显示项)：</label>
+                                <input type="text" class="text_pole flex1 comfy-bind-preset-name" placeholder="例如：人物正背面 (2段分镜)" />
+                            </div>
+
+                            <!-- 2. 提示词参考对象 (上下文范围 + 勾选来源) -->
+                            <div class="comfy-form-row">
+                                <label class="comfy-label">对话内容参考范围：</label>
+                                <select class="text_pole comfy-select flex1 comfy-bind-preset-context-scope">
+                                    <option value="none">不参考对话内容 (仅看角色外观/纯环境背景)</option>
+                                    <option value="last_1">仅参考最后 1 条对话消息 (当前瞬间)</option>
+                                    <option value="recent_n">参考最近 N 条对话消息 (默认)</option>
+                                    <option value="all">参考当前对话全部历史消息</option>
+                                </select>
+                            </div>
+                            <div class="comfy-form-row comfy-bind-context-count-row">
+                                <label class="comfy-label">参考上下文条数 (N)：</label>
+                                <input type="number" class="text_pole widthNatural comfy-bind-preset-context-count" min="1" max="20" value="3" />
+                            </div>
+
+                            <!-- 全局信息补充注入源 -->
+                            <div class="comfy-form-row">
+                                <label class="comfy-label">全局信息注入参考：</label>
+                                <div class="comfy-sources-row">
+                                    <label class="comfy-source-checkbox-item" title="将角色卡的描述、性格与设定注入给提词大模型">
+                                        <input type="checkbox" class="comfy-bind-source-char-card" checked />
+                                        <span>角色卡外貌与设定 ({{char}})</span>
+                                    </label>
+                                    <label class="comfy-source-checkbox-item" title="将当前匹配的世界书词条/场景背景注入给提词大模型">
+                                        <input type="checkbox" class="comfy-bind-source-lorebook" />
+                                        <span>世界书与场景设定 (Lorebook)</span>
+                                    </label>
+                                    <label class="comfy-source-checkbox-item" title="将用户 Persona 注入给提词大模型 (适合双人交互)">
+                                        <input type="checkbox" class="comfy-bind-source-user-persona" />
+                                        <span>用户人设 ({{user}})</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 3. 提示词提取规则 -->
+                            <div class="comfy-form-row">
+                                <div class="comfy-form-header flex-between" style="width: 100%; margin-bottom: 4px;">
+                                    <label class="comfy-label" style="margin-bottom: 0;">提示词提取规则与输出格式：</label>
+                                    <span class="comfy-hint-text">支持宏变量：<code>{{char}}</code> (角色名), <code>{{user}}</code> (用户名), <code>{{count}}</code> (分镜数)</span>
+                                </div>
+                                <textarea class="text_pole textarea_compact flex1 comfy-bind-preset-extract-prompt" rows="5" placeholder="规定应该如何从参考对象中提取并总结提示词..."></textarea>
+                            </div>
+
+                            <!-- 4. 提示词生成段数 (分镜数) -->
+                            <div class="comfy-form-row">
+                                <label class="comfy-label">提示词生成段数 (分镜批次)：</label>
+                                <div class="flex-row-center flexGap10">
+                                    <input type="number" class="text_pole widthNatural comfy-bind-preset-shot-count" min="1" max="4" value="1" />
+                                    <span class="comfy-hint-text">(若 > 1，提取规则需引导 LLM 用 <code>---DIVIDER---</code> 分割每段，插件将依次提交 ComfyUI 并批量展示)</span>
+                                </div>
+                            </div>
+
+                            <!-- 5. 专属图片分辨率 -->
+                            <div class="comfy-form-row">
+                                <label class="comfy-label">图片分辨率 (选填)：</label>
+                                <select class="text_pole comfy-select flex1 comfy-bind-preset-resolution">
+                                    <option value="keep_global">使用全局设置 (留空则不单独指定)</option>
+                                    <option value="832x1216">832 x 1216 (标准竖屏)</option>
+                                    <option value="1024x1024">1024 x 1024 (正方 1:1)</option>
+                                    <option value="1216x832">1216 x 832 (宽屏横屏)</option>
+                                    <option value="1024x1536">1024 x 1536 (高清长竖屏 - 适合正反面)</option>
+                                    <option value="custom">自定义此预设专属分辨率...</option>
+                                </select>
+                            </div>
+                            <div class="comfy-form-row comfy-bind-custom-res-row" style="display: none;">
+                                <label class="comfy-label">自定义宽高：</label>
+                                <div class="flex-row-center flexGap10">
+                                    <input type="number" class="text_pole widthNatural comfy-bind-preset-custom-w" placeholder="宽" value="1024" step="8" />
+                                    <span>×</span>
+                                    <input type="number" class="text_pole widthNatural comfy-bind-preset-custom-h" placeholder="高" value="1536" step="8" />
+                                </div>
+                            </div>
+
+                            <!-- 预设操作按钮 -->
+                            <div class="comfy-preset-actions">
+                                <button class="menu_button comfy-btn-primary comfy-btn-sm comfy-bind-save-preset-btn">
+                                    <i class="fa-solid fa-check"></i> 保存当前预设
+                                </button>
+                                <button class="menu_button comfy-btn-secondary comfy-btn-sm comfy-bind-set-default-preset-btn" title="将此预设设为消息按钮与快捷调用默认项">
+                                    <i class="fa-solid fa-star"></i> 设为默认激活
+                                </button>
+                                <button class="menu_button comfy-btn-secondary comfy-btn-sm comfy-bind-delete-preset-btn" style="color: #f87171 !important;">
+                                    <i class="fa-solid fa-trash"></i> 删除此预设
+                                </button>
+                                <button class="menu_button comfy-btn-secondary comfy-btn-sm comfy-bind-reset-presets-btn" style="margin-left: auto;" title="恢复系统内置的常用预设模版">
+                                    <i class="fa-solid fa-rotate-left"></i> 恢复出厂预设
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+
+        $('body').append(modal);
+
+        modal.on('click', function (e) {
+            if ($(e.target).hasClass('comfy-preset-modal-overlay')) {
+                closePresetManagementModal();
+            }
+        });
+
+        modal.on('click', '#comfy_preset_modal_close_btn', function () {
+            closePresetManagementModal();
+        });
+
+        $(document).on('keydown', function (e) {
+            if (e.key === 'Escape' && $('#comfy_preset_modal').is(':visible')) {
+                closePresetManagementModal();
+            }
+        });
+    }
+
+    renderPresetPills();
+    populatePresetForm(settings.editingPresetId || settings.activePresetId);
+    modal.fadeIn(180);
+}
+
+function closePresetManagementModal() {
+    const modal = $('#comfy_preset_modal');
+    if (modal.length > 0) {
+        modal.fadeOut(150);
+    }
 }
 
 /**
@@ -1575,11 +1758,41 @@ function bindSettingsUIEvents() {
         });
     });
 
-    // 3. 文件上传与拖拽
+    // 3. 文件上传与拖拽及多工作流管理
     const fileInput = $('#comfy_workflow_file_input');
     const uploadBox = $('#comfy_upload_box');
 
-    uploadBox.on('click', () => fileInput.trigger('click'));
+    uploadBox.on('click', function (e) {
+        if (e.target.id !== 'comfy_workflow_file_input') {
+            fileInput.val('');
+            fileInput.trigger('click');
+        }
+    });
+
+    $('#comfy_add_workflow_btn').on('click', function (e) {
+        e.stopPropagation();
+        fileInput.val('');
+        fileInput.trigger('click');
+    });
+
+    $('#comfy_delete_workflow_btn').on('click', function (e) {
+        e.stopPropagation();
+        if (!settings.workflows || settings.workflows.length <= 1) {
+            toastr.warning('至少需要保留一个工作流配置！');
+            return;
+        }
+        const curId = settings.activeWorkflowId;
+        const curWf = settings.workflows.find(w => w.id === curId);
+        const name = curWf ? curWf.name : '当前工作流';
+        if (!confirm(`确定要删除工作流「${name}」吗？`)) return;
+
+        settings.workflows = settings.workflows.filter(w => w.id !== curId);
+        settings.activeWorkflowId = settings.workflows[0].id;
+        applyActiveWorkflow();
+        renderWorkflowPills();
+        saveSettings();
+        toastr.success(`工作流「${name}」已删除！`);
+    });
 
     uploadBox.on('dragover', function (e) {
         e.preventDefault();
@@ -1603,6 +1816,73 @@ function bindSettingsUIEvents() {
         }
     });
 
+    function renderWorkflowPills() {
+        const bar = $('#comfy_workflow_pills_bar');
+        if (bar.length === 0) return;
+        bar.empty();
+
+        (settings.workflows || []).forEach(wf => {
+            const isActive = wf.id === settings.activeWorkflowId;
+            const starBadge = isActive ? '<i class="fa-solid fa-star comfy-pill-star" title="当前激活使用的工作流"></i>' : '';
+            const pill = $(`
+                <div class="comfy-preset-pill ${isActive ? 'active' : ''}" data-wfid="${wf.id}" title="${wf.name}">
+                    <span>${wf.name}</span>
+                    ${starBadge}
+                </div>
+            `);
+            pill.on('click', function () {
+                if (settings.activeWorkflowId === wf.id) return;
+                // 切换前先暂存当前工作流的接口映射
+                saveCurrentWorkflowMapping();
+                settings.activeWorkflowId = wf.id;
+                applyActiveWorkflow();
+                renderWorkflowPills();
+                saveSettings();
+                toastr.info(`已切换到工作流: ${wf.name}`);
+            });
+            bar.append(pill);
+        });
+    }
+
+    function saveCurrentWorkflowMapping() {
+        if (!settings.workflows || !settings.activeWorkflowId) return;
+        const curWf = settings.workflows.find(w => w.id === settings.activeWorkflowId);
+        if (!curWf) return;
+        curWf.mapping = {
+            promptNodeId: settings.promptNodeId,
+            negativeNodeId: settings.negativeNodeId,
+            latentNodeId: settings.latentNodeId,
+            outputNodeId: settings.outputNodeId,
+            seedNodeIds: settings.seedNodeIds || []
+        };
+    }
+
+    function applyActiveWorkflow() {
+        if (!settings.workflows || settings.workflows.length === 0) return;
+        const curWf = settings.workflows.find(w => w.id === settings.activeWorkflowId) || settings.workflows[0];
+        if (!curWf) return;
+
+        settings.activeWorkflowId = curWf.id;
+        settings.workflowJson = curWf.json;
+        settings.workflowFilename = curWf.name;
+
+        if (curWf.mapping) {
+            settings.promptNodeId = curWf.mapping.promptNodeId || '';
+            settings.negativeNodeId = curWf.mapping.negativeNodeId || '';
+            settings.latentNodeId = curWf.mapping.latentNodeId || '';
+            settings.outputNodeId = curWf.mapping.outputNodeId || '';
+            settings.seedNodeIds = curWf.mapping.seedNodeIds || [];
+        }
+
+        if (curWf.json) {
+            updateMappingDropdowns(curWf.json);
+            if (!curWf.mapping || !curWf.mapping.promptNodeId) {
+                autoMatchWorkflowInterfaces(curWf.json);
+                saveCurrentWorkflowMapping();
+            }
+        }
+    }
+
     function handleWorkflowFile(file) {
         if (!file.name.endsWith('.json')) {
             toastr.error('请上传 .json 格式的工作流文件！');
@@ -1613,10 +1893,21 @@ function bindSettingsUIEvents() {
         reader.onload = function (event) {
             try {
                 const json = JSON.parse(event.target.result);
-                settings.workflowJson = json;
-                settings.workflowFilename = file.name;
-                updateMappingDropdowns(json);
-                autoMatchWorkflowInterfaces(json);
+                saveCurrentWorkflowMapping();
+
+                const newWf = {
+                    id: 'wf_' + Date.now(),
+                    name: file.name,
+                    json: json,
+                    mapping: {}
+                };
+
+                if (!Array.isArray(settings.workflows)) settings.workflows = [];
+                settings.workflows.push(newWf);
+                settings.activeWorkflowId = newWf.id;
+
+                applyActiveWorkflow();
+                renderWorkflowPills();
                 saveSettings();
                 toastr.success(`工作流 ${file.name} 载入成功！共识别出 ${Object.keys(json).length} 个节点。`);
             } catch (err) {
@@ -1702,25 +1993,28 @@ function bindSettingsUIEvents() {
 
     // 7.1 预设系统可视化交互与表单管理
     function renderPresetPills() {
-        const bar = $('#comfy_preset_pills_bar');
-        bar.empty();
+        const bars = $('.comfy-preset-pills-bar-target');
+        bars.empty();
 
         (settings.presets || []).forEach(p => {
             const isEditing = p.id === settings.editingPresetId;
             const isDefault = p.id === settings.activePresetId;
             const defaultStar = isDefault ? '<i class="fa-solid fa-star comfy-pill-star" title="当前默认激活预设"></i>' : '';
-            const pill = $(`
+            const pillHtml = `
                 <div class="comfy-preset-pill ${isEditing ? 'active' : ''}" data-id="${p.id}">
                     <span>${p.name}</span>
                     ${defaultStar}
                 </div>
-            `);
-            pill.on('click', function () {
-                settings.editingPresetId = p.id;
-                renderPresetPills();
-                populatePresetForm(p.id);
+            `;
+            bars.each(function () {
+                const pill = $(pillHtml);
+                pill.on('click', function () {
+                    settings.editingPresetId = p.id;
+                    renderPresetPills();
+                    populatePresetForm(p.id);
+                });
+                $(this).append(pill);
             });
-            bar.append(pill);
         });
     }
 
@@ -1728,82 +2022,92 @@ function bindSettingsUIEvents() {
         const p = settings.presets.find(item => item.id === presetId) || settings.presets[0];
         if (!p) return;
 
-        $('#comfy_preset_name').val(p.name);
-        $('#comfy_preset_context_scope').val(p.contextScope || 'recent_n');
-        $('#comfy_preset_context_count').val(p.contextCount || 3);
-        $('#comfy_source_char_card').prop('checked', p.sourceCharCard !== false);
-        $('#comfy_source_lorebook').prop('checked', !!p.sourceLorebook);
-        $('#comfy_source_user_persona').prop('checked', !!p.sourceUserPersona);
-        $('#comfy_preset_extract_prompt').val(p.extractPrompt || '');
-        $('#comfy_preset_shot_count').val(p.shotCount || 1);
-        $('#comfy_preset_resolution').val(p.resolution || 'keep_global');
-        $('#comfy_preset_custom_w').val(p.customWidth || 832);
-        $('#comfy_preset_custom_h').val(p.customHeight || 1216);
+        $('.comfy-bind-preset-name').val(p.name);
+        $('.comfy-bind-preset-context-scope').val(p.contextScope || 'recent_n');
+        $('.comfy-bind-preset-context-count').val(p.contextCount || 3);
+        $('.comfy-bind-source-char-card').prop('checked', p.sourceCharCard !== false);
+        $('.comfy-bind-source-lorebook').prop('checked', !!p.sourceLorebook);
+        $('.comfy-bind-source-user-persona').prop('checked', !!p.sourceUserPersona);
+        $('.comfy-bind-preset-extract-prompt').val(p.extractPrompt || '');
+        $('.comfy-bind-preset-shot-count').val(p.shotCount || 1);
+        $('.comfy-bind-preset-resolution').val(p.resolution || 'keep_global');
+        $('.comfy-bind-preset-custom-w').val(p.customWidth || 832);
+        $('.comfy-bind-preset-custom-h').val(p.customHeight || 1216);
 
-        $('#comfy_preset_context_count_row').toggle(p.contextScope === 'recent_n');
-        $('#comfy_preset_custom_res_row').toggle(p.resolution === 'custom');
+        $('.comfy-bind-context-count-row').toggle(p.contextScope === 'recent_n');
+        $('.comfy-bind-custom-res-row').toggle(p.resolution === 'custom');
 
         // 系统默认项不允许删除
         if (p.isSystem || p.id === 'preset_default') {
-            $('#comfy_delete_preset_btn').prop('disabled', true).attr('title', '系统核心默认项不可删除');
+            $('.comfy-bind-delete-preset-btn').prop('disabled', true).attr('title', '系统核心默认项不可删除');
         } else {
-            $('#comfy_delete_preset_btn').prop('disabled', false).removeAttr('title');
+            $('.comfy-bind-delete-preset-btn').prop('disabled', false).removeAttr('title');
         }
 
         // 默认状态标记
         if (p.id === settings.activePresetId) {
-            $('#comfy_set_default_preset_btn').prop('disabled', true).html('<i class="fa-solid fa-check"></i> 当前已是默认');
+            $('.comfy-bind-set-default-preset-btn').prop('disabled', true).html('<i class="fa-solid fa-check"></i> 当前已是默认');
         } else {
-            $('#comfy_set_default_preset_btn').prop('disabled', false).html('<i class="fa-solid fa-star"></i> 设为默认激活');
+            $('.comfy-bind-set-default-preset-btn').prop('disabled', false).html('<i class="fa-solid fa-star"></i> 设为默认激活');
         }
     }
 
-    function saveCurrentPresetFromForm() {
+    function saveCurrentPresetFromForm(sourceEl) {
         const p = settings.presets.find(item => item.id === settings.editingPresetId);
         if (!p) return;
 
-        p.name = $('#comfy_preset_name').val().trim() || '未命名预设';
-        p.contextScope = $('#comfy_preset_context_scope').val();
-        p.contextCount = Math.max(1, Number($('#comfy_preset_context_count').val()) || 3);
-        p.sourceCharCard = $('#comfy_source_char_card').is(':checked');
-        p.sourceLorebook = $('#comfy_source_lorebook').is(':checked');
-        p.sourceUserPersona = $('#comfy_source_user_persona').is(':checked');
-        p.extractPrompt = $('#comfy_preset_extract_prompt').val();
-        p.shotCount = Math.max(1, Number($('#comfy_preset_shot_count').val()) || 1);
-        p.resolution = $('#comfy_preset_resolution').val();
-        p.customWidth = Number($('#comfy_preset_custom_w').val()) || 832;
-        p.customHeight = Number($('#comfy_preset_custom_h').val()) || 1216;
+        const container = sourceEl ? $(sourceEl).closest('.comfy-preset-editor-scope') : $('#comfy_preset_editor');
+        if (container.length > 0) {
+            p.name = container.find('.comfy-bind-preset-name').val().trim() || '未命名预设';
+            p.contextScope = container.find('.comfy-bind-preset-context-scope').val();
+            p.contextCount = Math.max(1, Number(container.find('.comfy-bind-preset-context-count').val()) || 3);
+            p.sourceCharCard = container.find('.comfy-bind-source-char-card').is(':checked');
+            p.sourceLorebook = container.find('.comfy-bind-source-lorebook').is(':checked');
+            p.sourceUserPersona = container.find('.comfy-bind-source-user-persona').is(':checked');
+            p.extractPrompt = container.find('.comfy-bind-preset-extract-prompt').val();
+            p.shotCount = Math.max(1, Number(container.find('.comfy-bind-preset-shot-count').val()) || 1);
+            p.resolution = container.find('.comfy-bind-preset-resolution').val();
+            p.customWidth = Number(container.find('.comfy-bind-preset-custom-w').val()) || 832;
+            p.customHeight = Number(container.find('.comfy-bind-preset-custom-h').val()) || 1216;
+        }
 
         saveSettings();
         renderPresetPills();
+        populatePresetForm(settings.editingPresetId);
         if ($('#comfy_float_panel').is(':visible')) {
             renderFloatingPanelContent();
         }
     }
 
-    $('#comfy_preset_context_scope').on('change', function () {
+    $(document).on('change', '.comfy-bind-preset-context-scope', function () {
         const scope = $(this).val();
-        $('#comfy_preset_context_count_row').toggle(scope === 'recent_n');
-        saveCurrentPresetFromForm();
+        $('.comfy-bind-context-count-row').toggle(scope === 'recent_n');
+        saveCurrentPresetFromForm(this);
     });
 
-    $('#comfy_preset_resolution').on('change', function () {
+    $(document).on('change', '.comfy-bind-preset-resolution', function () {
         const res = $(this).val();
-        $('#comfy_preset_custom_res_row').toggle(res === 'custom');
-        saveCurrentPresetFromForm();
+        $('.comfy-bind-custom-res-row').toggle(res === 'custom');
+        saveCurrentPresetFromForm(this);
     });
 
-    $('#comfy_preset_name, #comfy_preset_context_count, #comfy_preset_shot_count, #comfy_preset_custom_w, #comfy_preset_custom_h').on('input change', saveCurrentPresetFromForm);
-    $('#comfy_source_char_card, #comfy_source_lorebook, #comfy_source_user_persona').on('change', saveCurrentPresetFromForm);
-    $('#comfy_preset_extract_prompt').on('blur', saveCurrentPresetFromForm);
+    $(document).on('input change', '.comfy-bind-preset-name, .comfy-bind-preset-context-count, .comfy-bind-preset-shot-count, .comfy-bind-preset-custom-w, .comfy-bind-preset-custom-h', function () {
+        saveCurrentPresetFromForm(this);
+    });
+    $(document).on('change', '.comfy-bind-source-char-card, .comfy-bind-source-lorebook, .comfy-bind-source-user-persona', function () {
+        saveCurrentPresetFromForm(this);
+    });
+    $(document).on('blur', '.comfy-bind-preset-extract-prompt', function () {
+        saveCurrentPresetFromForm(this);
+    });
 
-    $('#comfy_save_current_preset_btn').on('click', function () {
-        saveCurrentPresetFromForm();
+    $(document).on('click', '.comfy-bind-save-preset-btn', function () {
+        saveCurrentPresetFromForm(this);
         toastr.success('预设已保存！');
     });
 
     // 新增预设
-    $('#comfy_add_preset_btn').on('click', function () {
+    $(document).on('click', '.comfy-bind-add-preset-btn', function () {
         const newId = 'preset_' + Date.now();
         const newPreset = {
             id: newId,
@@ -1831,7 +2135,7 @@ function bindSettingsUIEvents() {
     });
 
     // 设为默认激活预设
-    $('#comfy_set_default_preset_btn').on('click', function () {
+    $(document).on('click', '.comfy-bind-set-default-preset-btn', function () {
         settings.activePresetId = settings.editingPresetId;
         saveSettings();
         renderPresetPills();
@@ -1841,7 +2145,7 @@ function bindSettingsUIEvents() {
     });
 
     // 删除预设
-    $('#comfy_delete_preset_btn').on('click', function () {
+    $(document).on('click', '.comfy-bind-delete-preset-btn', function () {
         const curId = settings.editingPresetId;
         if (curId === 'preset_default') {
             toastr.warning('系统默认预设不能删除！');
@@ -1861,7 +2165,7 @@ function bindSettingsUIEvents() {
     });
 
     // 恢复出厂内置预设
-    $('#comfy_reset_presets_btn').on('click', function () {
+    $(document).on('click', '.comfy-bind-reset-presets-btn', function () {
         if (!confirm('确定要恢复出厂内置预设吗？您自定义添加的预设将会被清空。')) return;
         settings.presets = JSON.parse(JSON.stringify(BUILTIN_PRESETS));
         settings.activePresetId = 'preset_default';
@@ -1947,7 +2251,10 @@ function bindSettingsUIEvents() {
     $('#comfy_custom_resolution_row').toggle(settings.defaultResolution === 'custom');
     $('#comfy_fixed_seed_row').toggle(settings.seedStrategy === 'fixed');
 
-    if (settings.workflowJson) {
+    if (settings.workflows && settings.workflows.length > 0) {
+        applyActiveWorkflow();
+        renderWorkflowPills();
+    } else if (settings.workflowJson) {
         updateMappingDropdowns(settings.workflowJson);
     }
 }
